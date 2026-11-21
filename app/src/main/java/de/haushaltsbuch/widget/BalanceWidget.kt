@@ -72,9 +72,9 @@ private fun WidgetContent(ctx: Context, balance: String) {
         Text(balance, style = TextStyle(color = ColorProvider(Color.White), fontSize = 24.sp, fontWeight = FontWeight.Bold))
         Spacer(GlanceModifier.height(8.dp))
         Row(GlanceModifier.fillMaxWidth()) {
-            Button("− Ausgabe", actionStartActivity(newBooking(ctx, TxType.EXPENSE)), GlanceModifier.defaultWeight())
+            Button("− Ausgabe", startActivityWithIntent(newBooking(ctx, TxType.EXPENSE)), GlanceModifier.defaultWeight())
             Spacer(GlanceModifier.width(8.dp))
-            Button("+ Einnahme", actionStartActivity(newBooking(ctx, TxType.INCOME)), GlanceModifier.defaultWeight())
+            Button("+ Einnahme", startActivityWithIntent(newBooking(ctx, TxType.INCOME)), GlanceModifier.defaultWeight())
         }
     }
 }
