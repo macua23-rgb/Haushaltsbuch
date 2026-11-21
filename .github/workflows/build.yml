@@ -11,6 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Findet den Ordner mit settings.gradle.kts, egal in welcher Ebene das Projekt liegt.
+      - name: Projektordner finden
+        id: proj
+        run: |
+          f=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)
+          if [ -z "$f" ]; then
+            echo "settings.gradle.kts nicht gefunden. Dateien im Repository:"
+            find . -not -path './.git/*' -type f | head -n 60
+            exit 1
+          fi
+          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,13 +33,15 @@ jobs:
           gradle-version: "8.9"
 
       - name: Unit-Tests
+        working-directory: ${{ steps.proj.outputs.dir }}
         run: gradle testDebugUnitTest
 
       - name: Debug-APK bauen
+        working-directory: ${{ steps.proj.outputs.dir }}
         run: gradle assembleDebug
 
       - uses: actions/upload-artifact@v4
         with:
           name: haushaltsbuch-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
