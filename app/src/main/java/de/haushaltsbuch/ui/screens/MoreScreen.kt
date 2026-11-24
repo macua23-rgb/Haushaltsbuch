@@ -43,5 +43,11 @@ fun MoreScreen(ui: UiState, onSettle: (Account) -> Unit, onOpen: (String) -> Uni
         items(entries) { (route, label) ->
             ListItem(modifier = Modifier.clickable { onOpen(route) }, headlineContent = { Text(label) })
         }
+        item {
+            // Zeigt, welche Version wirklich installiert ist
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            val v = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
+            Text("Version $v", Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
