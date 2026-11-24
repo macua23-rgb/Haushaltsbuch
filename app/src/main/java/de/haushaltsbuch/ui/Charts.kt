@@ -1,6 +1,7 @@
 package de.haushaltsbuch.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -67,7 +68,7 @@ fun ProgressRing(progress: Float, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-/** Einnahmen (grün) und Ausgaben (rot) der letzten Monate, als Canvas gezeichnet. */
+/** Einnahmen (hellgrün) und Ausgaben (petrol) der letzten Monate, als Canvas gezeichnet. */
 @Composable
 fun IncomeExpenseChart(months: List<MonthSum>, modifier: Modifier = Modifier) {
     val maxValue = (months.maxOfOrNull { maxOf(it.income, it.expense) } ?: 1L).coerceAtLeast(1L)
@@ -81,8 +82,8 @@ fun IncomeExpenseChart(months: List<MonthSum>, modifier: Modifier = Modifier) {
                 val center = i * slot + slot / 2
                 val hIncome = size.height * m.income / maxValue
                 val hExpense = size.height * m.expense / maxValue
-                drawRect(Income, Offset(center - barW - gap / 2, size.height - hIncome), Size(barW, hIncome))
-                drawRect(Expense, Offset(center + gap / 2, size.height - hExpense), Size(barW, hExpense))
+                drawRect(IncomeBar, Offset(center - barW - gap / 2, size.height - hIncome), Size(barW, hIncome))
+                drawRect(Lagune, Offset(center + gap / 2, size.height - hExpense), Size(barW, hExpense))
             }
             drawLine(axis, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 1.dp.toPx())
         }
@@ -95,9 +96,11 @@ fun IncomeExpenseChart(months: List<MonthSum>, modifier: Modifier = Modifier) {
             }
         }
         Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("■ Einnahmen", color = Income, style = MaterialTheme.typography.labelMedium)
-            Spacer(Modifier.width(12.dp))
-            Text("■ Ausgaben", color = Expense, style = MaterialTheme.typography.labelMedium)
+            Box(Modifier.size(12.dp).background(IncomeBar))
+            Text("  Einnahmen", style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.width(16.dp))
+            Box(Modifier.size(12.dp).background(Lagune))
+            Text("  Ausgaben", style = MaterialTheme.typography.labelMedium)
         }
     }
 }

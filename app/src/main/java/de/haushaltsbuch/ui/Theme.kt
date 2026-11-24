@@ -19,6 +19,7 @@ val Linie = Color(0xFFD5E4E1)
 val Income = Color(0xFF0B6B54)
 val Expense = Color(0xFFB3302A)
 val Warning = Color(0xFFA34A00)
+val IncomeBar = Color(0xFF2A9479)   // Balkenfarbe für Einnahmen, heller als Petrol (Ausgaben)
 
 private val PegelColors = lightColorScheme(
     primary = Lagune, onPrimary = Color.White,
