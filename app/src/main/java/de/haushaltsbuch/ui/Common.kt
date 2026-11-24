@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import de.haushaltsbuch.data.Category
+import de.haushaltsbuch.data.TxType
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -23,13 +25,37 @@ val PALETTE = listOf(0xFF4F7CAC, 0xFFE0A030, 0xFF8E6BBF, 0xFFD4472F, 0xFF2A9D8F,
 @Composable
 fun <T> ChipRow(
     options: List<Pair<T, String>>, selected: T?, modifier: Modifier = Modifier,
-    enabled: Boolean = true, onSelect: (T) -> Unit
+    enabled: Boolean = true, trailing: (@Composable () -> Unit)? = null, onSelect: (T) -> Unit
 ) {
     LazyRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(options) { (key, label) ->
             FilterChip(selected = selected == key, onClick = { onSelect(key) }, label = { Text(label) }, enabled = enabled)
         }
+        if (trailing != null) item { trailing() }
     }
+}
+
+/** Schnell eine neue Kategorie anlegen (Name und Symbol, die Farbe wird automatisch gewählt). */
+@Composable
+fun NewCategoryDialog(type: TxType, colorIndex: Int, onCreate: (Category) -> Unit, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var icon by remember { mutableStateOf(ICONS[0]) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (type == TxType.INCOME) "Neue Einnahmen-Kategorie" else "Neue Ausgaben-Kategorie") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Name") }, singleLine = true)
+                ChipRow(ICONS.map { it to it }, icon) { icon = it }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                if (name.isNotBlank()) onCreate(Category(name = name.trim(), icon = icon, colorArgb = PALETTE[colorIndex % PALETTE.size], type = type))
+            }) { Text("Anlegen") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
+    )
 }
 
 @Composable

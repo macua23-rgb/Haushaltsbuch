@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ import de.haushaltsbuch.ui.*
 @Composable
 fun CategoriesScreen(ui: UiState, onSave: (Category) -> Unit, onDelete: (Category) -> Unit, onBack: () -> Unit) {
     var editing by remember { mutableStateOf<Category?>(null) }   // id 0 = neu
+    var toDelete by remember { mutableStateOf<Category?>(null) }
     SubScreen("Kategorien", onBack, actions = {
         IconButton(onClick = { editing = Category(name = "", icon = ICONS[0], colorArgb = PALETTE[0], type = TxType.EXPENSE) }) {
             Icon(Icons.Default.Add, "Kategorie hinzufügen")
@@ -42,7 +44,17 @@ fun CategoriesScreen(ui: UiState, onSave: (Category) -> Unit, onDelete: (Categor
                                 Text(c.icon)
                             }
                         },
-                        headlineContent = { Text(c.name) }
+                        headlineContent = { Text(c.name) },
+                        trailingContent = {
+                            IconButton(onClick = { toDelete = c }) { Icon(Icons.Default.Delete, "${c.name} löschen") }
+                        }
+                    )
+                }
+                item {
+                    ListItem(
+                        modifier = Modifier.clickable { editing = Category(name = "", icon = ICONS[0], colorArgb = PALETTE[0], type = t) },
+                        leadingContent = { Icon(Icons.Default.Add, null) },
+                        headlineContent = { Text("Kategorie hinzufügen") }
                     )
                 }
             }
@@ -50,6 +62,14 @@ fun CategoriesScreen(ui: UiState, onSave: (Category) -> Unit, onDelete: (Categor
     }
     editing?.let { cat ->
         CategoryEditor(cat, onDismiss = { editing = null }, onSave = { onSave(it); editing = null }, onDelete = { onDelete(cat); editing = null })
+    }
+    toDelete?.let { c ->
+        ConfirmDialog(
+            "Kategorie löschen?",
+            "Die Buchungen bleiben erhalten, haben danach aber keine Kategorie. Ein Budget dazu wird gelöscht.",
+            "Löschen",
+            onConfirm = { onDelete(c); toDelete = null }, onDismiss = { toDelete = null }
+        )
     }
 }
 

@@ -94,7 +94,8 @@ fun AppRoot(
             ui = ui, initial = s.initial, startType = s.type, receipts = vm.receipts,
             onDismiss = { sheet = null },
             onSave = { b -> if (s.initial == null) vm.add(b) else vm.update(s.initial, b); sheet = null },
-            onDelete = s.initial?.let { b -> { vm.delete(b); sheet = null } }
+            onDelete = s.initial?.let { b -> { vm.delete(b); sheet = null } },
+            onCreateCategory = vm::saveCategory
         )
     }
 }
