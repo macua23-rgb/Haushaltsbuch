@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.net.Uri
@@ -168,6 +169,22 @@ fun BookingSheet(
                     else -> MaterialTheme.colorScheme.onSurface
                 }
             )
+            if (type == TxType.EXPENSE) {
+                // Folge der Buchung sofort sichtbar machen: wie viel bleibt im Budget?
+                val bp = catId?.let { id -> ui.budgets.firstOrNull { it.category.id == id } }
+                if (bp != null && cents > 0) {
+                    val back = if (initial != null && initial.type == TxType.EXPENSE && initial.categoryId == bp.category.id)
+                        ui.fx.toBase(initial.amountCents, ui.currencyOf(initial.accountId)) else 0L
+                    val left = bp.limit - (bp.spent - back) - ui.fx.toBase(cents, fromCur)
+                    Text(
+                        if (left >= 0) "Danach noch ${ui.fmt(left)} im Budget „${bp.category.name}“"
+                        else "Budget „${bp.category.name}“ wäre um ${ui.fmt(-left)} überschritten",
+                        Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                        color = if (left >= 0) MaterialTheme.colorScheme.onSurfaceVariant else Expense
+                    )
+                }
+            }
             if (type != TxType.TRANSFER) {
                 ChipRow(
                     ui.categories.values.filter { it.type == type }.map { it.id to "${it.icon} ${it.name}" },
@@ -220,7 +237,7 @@ fun BookingSheet(
 
             Numpad { amount = amountKey(amount, it) }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Button(onClick = { save() }, Modifier.fillMaxWidth()) {
+            Button(onClick = { save() }, Modifier.fillMaxWidth().height(56.dp)) {
                 Text(if (initial == null) "Buchung speichern" else "Änderungen speichern")
             }
             if (onDelete != null) {
@@ -251,7 +268,7 @@ private fun Numpad(onKey: (String) -> Unit) {
         listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "⌫").chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 row.forEach { k ->
-                    FilledTonalButton(onClick = { onKey(k) }, Modifier.weight(1f)) {
+                    FilledTonalButton(onClick = { onKey(k) }, Modifier.weight(1f).height(52.dp)) {
                         Text(k, style = MaterialTheme.typography.titleLarge)
                     }
                 }

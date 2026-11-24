@@ -68,14 +68,16 @@ fun AppRoot(
             }
         },
         floatingActionButton = {
-            if (ready) FloatingActionButton(onClick = { sheet = SheetState(null, TxType.EXPENSE) }) {
+            if (ready && route != null && route != Tab.HOME.route) FloatingActionButton(onClick = { sheet = SheetState(null, TxType.EXPENSE) }) {
                 Icon(Icons.Default.Add, "Buchung erfassen")
             }
         }
     ) { pad ->
         val back: () -> Unit = { nav.popBackStack() }
         NavHost(nav, Tab.HOME.route, Modifier.padding(pad).consumeWindowInsets(pad)) {
-            composable(Tab.HOME.route) { HomeScreen(ui) { sheet = SheetState(it, it.type) } }
+            composable(Tab.HOME.route) {
+                HomeScreen(ui, onEdit = { sheet = SheetState(it, it.type) }, onAdd = { sheet = SheetState(null, it) })
+            }
             composable(Tab.TX.route) { TransactionsScreen(ui, { sheet = SheetState(it, it.type) }, vm::delete) }
             composable(Tab.STATS.route) { StatsScreen(ui, vm::setPeriod) }
             composable(Tab.BUDGETS.route) {
