@@ -172,8 +172,12 @@ fun BookingSheet(
             if (type == TxType.EXPENSE) {
                 // Folge der Buchung sofort sichtbar machen: wie viel bleibt im Budget?
                 val bp = catId?.let { id -> ui.budgets.firstOrNull { it.category.id == id } }
-                if (bp != null && cents > 0) {
-                    val back = if (initial != null && initial.type == TxType.EXPENSE && initial.categoryId == bp.category.id)
+                val now = LocalDate.now()
+                // Das Budget gilt für den laufenden Monat: nur dann ist die Folge der Buchung hier sichtbar
+                val inThisMonth = date.year == now.year && date.month == now.month
+                if (bp != null && cents > 0 && inThisMonth) {
+                    val back = if (initial != null && initial.type == TxType.EXPENSE && initial.categoryId == bp.category.id &&
+                        initial.date.year == now.year && initial.date.month == now.month)
                         ui.fx.toBase(initial.amountCents, ui.currencyOf(initial.accountId)) else 0L
                     val left = bp.limit - (bp.spent - back) - ui.fx.toBase(cents, fromCur)
                     Text(
