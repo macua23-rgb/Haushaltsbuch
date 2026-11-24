@@ -13,7 +13,7 @@ Kotlin, Jetpack Compose (Material 3), Room, Hilt, WorkManager, DataStore, Glance
 
 ## Funktionen
 - Buchungen erfassen und bearbeiten (Datum, Notiz, Tags, Konto, Kategorie), Löschen mit Rückfrage
-- Beleg-Foto (Kamera oder Galerie), liegt nur im App-Speicher
+- Beleg-Foto (Kamera oder Galerie), liegt nur im App-Speicher; Betrag, Datum, Händler und Kategorie werden auf dem Gerät erkannt (ML Kit) und nur vorausgefüllt
 - Konten (Giro, Bar, Kreditkarte, Spar) und Kategorien anlegen, bearbeiten, löschen
 - Umbuchungen, auch zwischen Währungen; Kreditkartenabrechnung automatisch am Abrechnungstag
 - Wiederkehrende Buchungen (wöchentlich, monatlich, jährlich), verpasste Termine werden nachgeholt
@@ -23,6 +23,7 @@ Kotlin, Jetpack Compose (Material 3), Room, Hilt, WorkManager, DataStore, Glance
 - Sperre mit Biometrie oder Geräte-PIN (sperrt nach 30 s im Hintergrund), Widget mit Kontostand und Schnelleingabe
 
 ## Aufbau
+- `scan/` Belegerkennung: Texterkennung, Parser, Kategorie-Rater (lernt aus früheren Buchungen)
 - `data/` Room (Version 2, Migration 1→2), Repository, Einstellungen (DataStore), Wechselkurse, Beleg-Speicher
 - `work/DailyWorker` täglich: wiederkehrende Buchungen, Kreditkartenabrechnung, Widget aktualisieren
 - `notify/` Budget-Warnungen

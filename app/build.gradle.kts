@@ -61,6 +61,7 @@ dependencies {
     implementation("androidx.biometric:biometric:1.1.0")                 // App-Sperre
     implementation("androidx.glance:glance-appwidget:1.1.1")             // Widget
     implementation("io.coil-kt:coil-compose:2.7.0")                      // Beleg-Vorschau
+    implementation("com.google.mlkit:text-recognition:16.0.1")           // Beleg-Texterkennung (offline)
 
     testImplementation("junit:junit:4.13.2")
 }

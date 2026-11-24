@@ -13,10 +13,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import de.haushaltsbuch.data.Booking
+import de.haushaltsbuch.data.Category
 import de.haushaltsbuch.data.ReceiptStore
 import de.haushaltsbuch.data.TxType
+import de.haushaltsbuch.scan.CategoryGuesser
+import de.haushaltsbuch.scan.ReceiptParser
+import de.haushaltsbuch.scan.ReceiptScanner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,7 +34,8 @@ import java.time.LocalDate
 @Composable
 fun BookingSheet(
     ui: UiState, initial: Booking?, startType: TxType, receipts: ReceiptStore,
-    onDismiss: () -> Unit, onSave: (Booking) -> Unit, onDelete: (() -> Unit)? = null
+    onDismiss: () -> Unit, onSave: (Booking) -> Unit, onDelete: (() -> Unit)? = null,
+    onCreateCategory: (Category) -> Unit = {}
 ) {
     var type by remember { mutableStateOf(initial?.type ?: startType) }
     var amount by remember { mutableStateOf(initial?.let { centsToInput(it.amountCents) } ?: "") }
@@ -43,8 +50,43 @@ fun BookingSheet(
     var saved by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var newCat by remember { mutableStateOf(false) }
+    var pendingCatName by remember { mutableStateOf<String?>(null) }
+    // Neu angelegte Kategorie sofort auswählen, sobald sie in der Datenbank steht
+    LaunchedEffect(ui.categories) {
+        pendingCatName?.let { n ->
+            ui.categories.values.firstOrNull { it.name == n && it.type == type }?.let { catId = it.id; pendingCatName = null }
+        }
+    }
     var pendingPath by rememberSaveable { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val ctx = LocalContext.current
+    var scanning by remember { mutableStateOf(false) }
+    var scanInfo by remember { mutableStateOf<String?>(null) }
+
+    /** Liest den Beleg und füllt nur leere Felder vor. Gespeichert wird erst nach deiner Bestätigung. */
+    fun scan(uri: String) {
+        if (type != TxType.EXPENSE) { scanInfo = "Beleg angehängt. Die automatische Erkennung gibt es nur für Ausgaben."; return }
+        scope.launch {
+            scanning = true; scanInfo = null
+            val text = ReceiptScanner.readText(ctx, Uri.parse(uri))
+            scanning = false
+            if (text.isNullOrBlank()) { scanInfo = "Auf dem Foto war kein Text zu erkennen. Bitte Felder selbst ausfüllen."; return@launch }
+            val p = ReceiptParser.parse(text)
+            val found = mutableListOf<String>()
+            val cur = ui.currencyOf(accountId)
+            if (amount.isBlank() && p.amountCents != null) { amount = centsToInput(p.amountCents); found += p.amountCents.money(cur) }
+            if (initial == null && date == LocalDate.now() && p.date != null) { date = p.date; found += p.date.label() }
+            if (note.isBlank() && p.merchant != null) { note = p.merchant; found += p.merchant }
+            if (catId == null) {
+                CategoryGuesser.guess(p.merchant, text, ui.bookings, ui.categories.values)?.let { id ->
+                    catId = id; found += ui.categories[id]?.name.orEmpty()
+                }
+            }
+            scanInfo = if (found.isEmpty()) "Nichts sicher erkannt. Bitte Felder selbst ausfüllen."
+            else "Erkannt: ${found.joinToString(" · ")}. Bitte prüfen."
+        }
+    }
 
     /** Ein noch nicht gespeichertes Foto wird sofort gelöscht; das gespeicherte Original erst beim Speichern. */
     fun dropCurrent() {
@@ -62,13 +104,13 @@ fun BookingSheet(
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
         val f = pendingPath?.let { File(it) }
         pendingPath = null
-        if (ok && f != null) { dropCurrent(); receipt = receipts.uriFor(f).toString() }
+        if (ok && f != null) { dropCurrent(); receipt = receipts.uriFor(f).toString(); scan(receipt!!) }
         else if (f != null) receipts.deleteFile(f)
     }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) scope.launch {
             val u = withContext(Dispatchers.IO) { receipts.importFrom(uri) }
-            dropCurrent(); receipt = u.toString()
+            dropCurrent(); receipt = u.toString(); scan(u.toString())
         }
     }
 
@@ -129,7 +171,8 @@ fun BookingSheet(
             if (type != TxType.TRANSFER) {
                 ChipRow(
                     ui.categories.values.filter { it.type == type }.map { it.id to "${it.icon} ${it.name}" },
-                    catId
+                    catId,
+                    trailing = { AssistChip(onClick = { newCat = true }, label = { Text("+ Neu") }) }
                 ) { catId = it }
             }
             Text(if (type == TxType.TRANSFER) "Von" else "Konto", style = MaterialTheme.typography.labelMedium)
@@ -162,12 +205,18 @@ fun BookingSheet(
                     val f = receipts.newFile()
                     pendingPath = f.absolutePath
                     camera.launch(receipts.uriFor(f))
-                }) { Text("Foto") }
+                }) { Text("Beleg fotografieren") }
                 OutlinedButton(onClick = {
                     gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }) { Text("Galerie") }
-                if (receipt != null) TextButton(onClick = { dropCurrent(); receipt = null }) { Text("Entfernen") }
+                if (receipt != null) TextButton(onClick = { dropCurrent(); receipt = null; scanInfo = null }) { Text("Entfernen") }
             }
+            if (scanning) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                Text("Beleg wird gelesen …", style = MaterialTheme.typography.bodySmall)
+            }
+            scanInfo?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            if (receipt != null && !scanning) TextButton(onClick = { scan(receipt!!) }) { Text("Beleg erneut erkennen") }
 
             Numpad { amount = amountKey(amount, it) }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -181,6 +230,13 @@ fun BookingSheet(
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+    if (newCat) {
+        NewCategoryDialog(
+            type = type, colorIndex = ui.categories.size,
+            onCreate = { c -> pendingCatName = c.name; onCreateCategory(c); newCat = false },
+            onDismiss = { newCat = false }
+        )
     }
     if (confirmDelete) {
         ConfirmDialog("Buchung löschen?", "Die Buchung und ein angehängter Beleg werden entfernt.", "Löschen",
